@@ -1,0 +1,3 @@
+
+## Read drop-in files from <%= $sudo::configdir %> (the # here does not mean a comment)
+#includedir <%= $sudo::configdir %>

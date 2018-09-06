@@ -20,10 +20,14 @@
 #         runas: root
 #         passwd: true
 #
+# @param configdir
+#   The directory to use for separate sudoers file rules
+#
 # @author Trevor Vaughan <tvaughan@onyxpoint.com>
 #
 class sudo (
-  Optional[Hash] $user_specifications = undef
+  Optional[Hash] $user_specifications = undef,
+  Optional[String] $configdir         = '/etc/sudoers.d',
 ){
   package { 'sudo': ensure => 'latest' }
 
@@ -44,4 +48,19 @@ class sudo (
     }
   }
 
+  if $configdir {
+    file { $configdir:
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0750',
+      recurse => true,
+      purge   => true,
+    }
+
+    concat::fragment { 'sudo_includedir':
+      order   => 99,
+      target  => '/etc/sudoers',
+      content => epp("${module_name}/includedir.epp"),
+    }
+  }
 }

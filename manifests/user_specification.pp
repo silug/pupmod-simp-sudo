@@ -26,6 +26,10 @@
 # @param setenv
 #   Set SETENV in /etc/sudoers
 #
+# @param target
+#   Target file for the rule.  Can be specified as a bare file name to be placed
+#   in `/etc/sudoers.d`.
+#
 # @example To create the following in /etc/sudoers:
 #   `simp, %simp_group    user2-dev1=(root) PASSWD:EXEC:SETENV: /bin/su root, /bin/su - root`
 #   Use the user_specification definition:
@@ -44,13 +48,30 @@ define sudo::user_specification (
   String[1]                $runas     = 'root',
   Boolean                  $passwd    = true,
   Boolean                  $doexec    = true,
-  Boolean                  $setenv    = true
+  Boolean                  $setenv    = true,
+  String                   $target    = '/etc/sudoers',
 ) {
   include '::sudo'
 
+  if $target =~ /^\// {
+    $_target = $target
+  } else {
+    $_target = "${sudo::configdir}/${target}"
+  }
+
+  unless defined(Concat[$_target]) {
+    concat { $_target:
+      owner        => 'root',
+      group        => 'root',
+      mode         => '0440',
+      validate_cmd => '/usr/sbin/visudo -q -c -f %',
+      require      => Package['sudo']
+    }
+  }
+
   concat::fragment { "sudo_user_specification_${name}":
     order   => 90,
-    target  => '/etc/sudoers',
+    target  => $_target,
     content => template("${module_name}/uspec.erb")
   }
 }
